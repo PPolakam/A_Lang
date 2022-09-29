@@ -3,6 +3,7 @@ enum OperationType {
     SUBTRACTION,
     MULTIPLICATION,
     DIVISION,
+    POW,
     FIRST,
     SECOND,
     IDLE
@@ -63,22 +64,21 @@ impl Expression {
             OperationType::SUBTRACTION => Some(arg1 - arg2),
             OperationType::MULTIPLICATION => Some(arg1 * arg2),
             OperationType::DIVISION => Some(arg1 / arg2),
+            OperationType::POW => Some(arg1.powf(arg2)),
             OperationType::FIRST => Some(arg1),
             OperationType::SECOND => Some(arg2),
             _ => None
         }
     }
-
-    fn to_expression(raw: String) -> Expression {
-
-        let expr = Expression::blank();
-
-        expr
-    }
 }
 
 fn main() {
-    let expr1 = Expression::wrap(5.0);
+
+    let expr1 = Expression {
+        arg1: Some(Box::new(ExpressionType::Expr(Expression::wrap(2.0)))),
+        arg2: Some(Box::new(ExpressionType::Expr(Expression::wrap(3.0)))),
+        operation: OperationType::POW
+    };
     let expr2 = Expression::wrap(10.0);
     let expr3 = Expression {
         arg1: Some(Box::new(ExpressionType::Expr(expr1))),
@@ -89,52 +89,62 @@ fn main() {
     println!("{}", expr3.evaluate().unwrap());
 }
 
-fn evaluate(line: &String) -> f64 {
+fn evaluate(line: &String) -> Expression {
     let result = line.parse::<f64>();
     match result {
-        Ok(number) => return number,
+        Ok(number) => return Expression::wrap(number),
         _ => {}
     };
 
-    // Check for scopes
+    let mut tokens: Vec<String> = vec![String::new()];
 
-    let by_scope = split_by_scope(line);
+    //&String::from("3 + (x + 5) + ((3x + 2) + 3)")
 
-    // Evaluate scopes
+    split_by_scope(line, &mut tokens);
 
-    for scoped_expression in &by_scope {
-        evaluate(scoped_expression);
-    }
+    let tokens = tokens.iter().filter(|x| { !(***x).is_empty() }).collect::<Vec<&String>>();
 
-    // Check for exponents
-
-
-
-    // Check for Multiplication + Division
-
-    // Check for Addition + Subtraction
-
-    0.0
+    let tokens = tokens.iter().map(|x| { evaluate(x) });
+    
+    Expression::blank()
 }
 
-fn split_by_scope(raw: &String) -> Vec<String> {
-    let mut tokens: Vec<String> = vec![String::new()];
+fn split_by_scope(raw: & String, tokens: &mut Vec<String>) {
 
     let openings = ['{', '[', '('];
     let closings = ['}', ']', ')'];
+    let ops = ['+', '-', '*', '/', '^'];
 
     let mut depth = 0;
 
     for character in raw.chars() {
+        if character.is_whitespace() {
+            continue;
+        }
         if openings.contains(&character) {
-            tokens.push(String::new());
+            if depth == 0 {
+                tokens.push(String::new());
+            } else {
+                let current = tokens.len() - 1;
+                (&mut tokens[current]).push(character);
+            } depth += 1;
         } else if closings.contains(&character) {
-            tokens.push(String::new());
+            depth -= 1;
+            if depth == 0 {
+                tokens.push(String::new());
+            } else {
+                let current = tokens.len() - 1;
+                (&mut tokens[current]).push(character);
+            }
         } else {
-            let current = tokens.len() - 1;
-            (&mut tokens[current]).push(character);
+            if depth == 0 && ops.contains(&character) {
+                tokens.push(String::from(character));
+                tokens.push(String::new());
+            } else {
+                let current = tokens.len() - 1;
+                (&mut tokens[current]).push(character);
+            }
         }
     }
 
-    tokens
 }
