@@ -1,4 +1,5 @@
 use std::ops;
+use std::collections::HashMap;
 
 enum OperationType {
     ADDITION,
@@ -48,6 +49,42 @@ impl ops::Add<Expression> for Expression {
     }
 }
 
+impl ops::Sub<Expression> for Expression {
+    type Output = Option<f64>;
+
+    fn sub(self, other: Expression) -> Option<f64> {
+        Expression::new(
+            ExpressionType::N(match self.evaluate() { Some(x) => x, None => 0.0 }),
+            ExpressionType::N(match other.evaluate() { Some(x) => x, None => 0.0 }),
+            OperationType::SUBTRACTION
+        ).evaluate()
+    }
+}
+
+impl ops::Mul<Expression> for Expression {
+    type Output = Option<f64>;
+
+    fn mul(self, other: Expression) -> Option<f64> {
+        Expression::new(
+            ExpressionType::N(match self.evaluate() { Some(x) => x, None => 0.0 }),
+            ExpressionType::N(match other.evaluate() { Some(x) => x, None => 0.0 }),
+            OperationType::MULTIPLICATION
+        ).evaluate()
+    }
+}
+
+impl ops::Div<Expression> for Expression {
+    type Output = Option<f64>;
+
+    fn div(self, other: Expression) -> Option<f64> {
+        Expression::new(
+            ExpressionType::N(match self.evaluate() { Some(x) => x, None => 0.0 }),
+            ExpressionType::N(match other.evaluate() { Some(x) => x, None => 0.0 }),
+            OperationType::DIVISION
+        ).evaluate()
+    }
+}
+
 impl Expression {
 
     fn blank() -> Expression {
@@ -87,28 +124,82 @@ impl Expression {
     }
 
     fn to_expression(raw: String) -> Expression {
+        //this isn't complete yet.
+        
+        println!("Raw: {raw}");
 
-        let args = raw.split(" ").map(|x| { String::from(x) }).collect::<Vec<String>>(); // use split by scope
 
-        let ops: Vec<(&str, &str)> = vec![("*", "/"), ("+", "-")];
-        let mut acc = Expression::zero();
+        let num_check = raw.parse::<f64>();
 
-        for (i, arg) in args.iter().enumerate() {
-            for op in &ops {
-                if arg.eq(op.0) || arg.eq(op.1) {
-                    let arg2 = &args[i + 1];
-
-                    if acc.evaluate().unwrap() == 0.0 {
-
-                    }
-                }
-            }
+        match num_check {
+            Ok(x) => { return Expression::wrap(x) },
+            Err(_message) => {}
         }
 
-        Expression::zero()
+        fn evaluate_contextually(el: &str, cache: &HashMap<String, Option<f64>>) -> Option<f64> {
+            let ops = vec![("*", "/"), ("+", "-")];
+            for op in ops {
+                if el.eq(op.0) || el.eq(op.1) {
+                    return Some(0.0);
+                }
+            }
+            for (placeholder, result) in cache {
+                if (*placeholder).eq(el) {
+                    return *result;
+                }
+            }
+            Expression::to_expression(String::from(el)).evaluate()
+        }
+
+        let mut args: Vec<String> = vec![String::new()];
+
+        split_by_scope(&raw, &mut args);
+
+        println!("{:?}", args);
+
+        let ops: Vec<(&str, &str)> = vec![("*", "/"), ("+", "-")];
+
+        let mut cache: HashMap<String, Option<f64>> = HashMap::new();
+        let mut current_hold = 0;
+
+        for op in &ops {
+            let mut arg_cache: Vec<String> = Vec::new();
+            for (i, arg) in args.iter().enumerate() {
+                if arg.is_empty() {
+                    continue;
+                }
+                println!("{:?}", &cache);
+                if (*arg).eq(op.0) || (*arg).eq(op.1) {
+                    let res = evaluate_contextually(arg, &cache);
+                    let mut key = String::from("∫");
+                    key.push_str(&(current_hold.to_string())[..]);
+                    current_hold += 1;
+                    arg_cache.push(key.to_string());
+                    let res = Expression::new(
+                        ExpressionType::N(res.unwrap()),
+                        ExpressionType::Expr(Expression::to_expression(args[i + 1].to_string())),
+                        OperationType::to_operation_type(arg)
+                    ).evaluate();
+                    cache.insert(key, res);
+                } else {
+                    arg_cache.push(String::from(&arg[..]));
+                }
+            } args = arg_cache;
+        }
+        
+        
+        let mut key = String::from("∫");
+        key.push_str(&((current_hold - 1).to_string())[..]);
+        println!("{key}");
+        Expression::new(
+            ExpressionType::N(cache.get(&key).unwrap().unwrap()),
+            ExpressionType::N(0.0),
+            OperationType::FIRST
+        )
     }
 
     fn evaluate(&self) -> Option<f64> {
+        
 
         let blank = Box::new(ExpressionType::N(0.0));
 
@@ -142,6 +233,14 @@ impl Expression {
 }
 
 fn main() {
+
+    let expr = Expression::to_expression(String::from("5 + 3"));
+
+    println!("{:?}", expr.evaluate());
+
+    if 1 == 1 {
+        return;
+    }
 
     let expr1 = Expression {
         arg1: Some(Box::new(ExpressionType::Expr(Expression::wrap(2.0)))),
