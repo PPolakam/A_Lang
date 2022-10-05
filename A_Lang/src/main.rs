@@ -127,6 +127,8 @@ impl Expression {
         //this isn't complete yet.
         
         println!("Raw: {raw}");
+        //3 + 5
+        
 
 
         let num_check = raw.parse::<f64>();
@@ -137,18 +139,12 @@ impl Expression {
         }
 
         fn evaluate_contextually(el: &str, cache: &HashMap<String, Option<f64>>) -> Option<f64> {
-            let ops = vec![("*", "/"), ("+", "-")];
-            for op in ops {
-                if el.eq(op.0) || el.eq(op.1) {
-                    return Some(0.0);
-                }
-            }
             for (placeholder, result) in cache {
                 if (*placeholder).eq(el) {
                     return *result;
                 }
             }
-            Expression::to_expression(String::from(el)).evaluate()
+            None
         }
 
         let mut args: Vec<String> = vec![String::new()];
@@ -168,7 +164,6 @@ impl Expression {
                 if arg.is_empty() {
                     continue;
                 }
-                println!("{:?}", &cache);
                 if (*arg).eq(op.0) || (*arg).eq(op.1) {
                     let res = evaluate_contextually(arg, &cache);
                     let mut key = String::from("∫");
@@ -176,7 +171,7 @@ impl Expression {
                     current_hold += 1;
                     arg_cache.push(key.to_string());
                     let res = Expression::new(
-                        ExpressionType::N(res.unwrap()),
+                        ExpressionType::Expr(Expression::to_expression(args[i - 1].to_string())),
                         ExpressionType::Expr(Expression::to_expression(args[i + 1].to_string())),
                         OperationType::to_operation_type(arg)
                     ).evaluate();
@@ -185,6 +180,8 @@ impl Expression {
                     arg_cache.push(String::from(&arg[..]));
                 }
             } args = arg_cache;
+            println!("args: {:?}", args);
+            println!("cache: {:?}", &cache);
         }
         
         
@@ -234,9 +231,9 @@ impl Expression {
 
 fn main() {
 
-    let expr = Expression::to_expression(String::from("5 + 3"));
+    let test = Expression::to_expression(String::from("3 + 4 + 5"));
 
-    println!("{:?}", expr.evaluate());
+    println!("{}", test.evaluate().unwrap());
 
     if 1 == 1 {
         return;
@@ -247,6 +244,7 @@ fn main() {
         arg2: Some(Box::new(ExpressionType::Expr(Expression::wrap(3.0)))),
         operation: OperationType::POW
     };
+    // 5 + 3
     let expr2 = Expression::wrap(10.0);
     let expr3 = Expression {
         arg1: Some(Box::new(ExpressionType::Expr(expr1))),
