@@ -1,3 +1,4 @@
+use std::io;
 use std::ops;
 use std::collections::HashMap;
 
@@ -125,8 +126,7 @@ impl Expression {
 
     fn to_expression(raw: String) -> Expression {
         //this isn't complete yet.
-        
-        println!("Raw: {raw}");
+
         //3 + 5
         
 
@@ -231,28 +231,13 @@ impl Expression {
 
 fn main() {
 
-    let test = Expression::to_expression(String::from("3 + 4 + 5"));
+    let mut input: String = String::new();
 
-    println!("{}", test.evaluate().unwrap());
-
-    if 1 == 1 {
-        return;
+    while !"end".eq(&input) {
+        let _res = io::stdin().read_line(&mut input);
+        let expr = Expression::to_expression(input.to_string());
+        println!("{:?}", expr.evaluate());
     }
-
-    let expr1 = Expression {
-        arg1: Some(Box::new(ExpressionType::Expr(Expression::wrap(2.0)))),
-        arg2: Some(Box::new(ExpressionType::Expr(Expression::wrap(3.0)))),
-        operation: OperationType::POW
-    };
-    // 5 + 3
-    let expr2 = Expression::wrap(10.0);
-    let expr3 = Expression {
-        arg1: Some(Box::new(ExpressionType::Expr(expr1))),
-        arg2: Some(Box::new(ExpressionType::Expr(expr2))),
-        operation: OperationType::ADDITION
-    };
-
-    println!("{}", expr3.evaluate().unwrap());
 }
 
 fn evaluate(line: &String) -> Expression {
