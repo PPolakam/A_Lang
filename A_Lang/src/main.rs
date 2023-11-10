@@ -33,8 +33,8 @@ impl Expression {
     fn wrap(n: f64) -> Expression {
         Expression {
             arg1: Some(Box::new(ExpressionType::N(n))),
-            arg2: None,
-            operation: OperationType::FIRST
+            arg2: Some(Box::new(ExpressionType::N(1))),
+            operation: OperationType::MULTIPLICATION
         }
     }
 
