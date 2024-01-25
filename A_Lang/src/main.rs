@@ -91,7 +91,7 @@ fn main() {
 
 fn evaluate(line: &String) -> f64 {
     let result = line.parse::<f64>();
-    match result {
+    match result { // consider replacing this with an if let Ok(number) = line.parse::<f64>() {} or smth
         Ok(number) => return number,
         _ => {}
     };
